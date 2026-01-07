@@ -23,12 +23,26 @@ jobs:
       - name: Extract libSQL Version
         id: get_version
         run: |
-          # Pull the upstream image and extract the version string (e.g., "0.24.33")
-          RAW_VER=$(docker run --rm ghcr.io/tursodatabase/libsql-server:latest /bin/sqld --version | awk '{print $2}')
-          # Clean output to remove trailing newlines
-          CLEAN_VER=$(echo $RAW_VER | tr -d '\r\n')
+          echo "--- DEBUG: Running sqld --version ---"
+          # 1. Capture the raw output
+          FULL_OUTPUT=$(docker run --rm ghcr.io/tursodatabase/libsql-server:latest /bin/sqld --version)
+          echo "Raw output from container: '$FULL_OUTPUT'"
+
+          # 2. Use a strict Regex to grab ONLY the numbers and dots
+          # This ignore the word 'sqld' entirely by looking for the pattern X.Y.Z
+          CLEAN_VER=$(echo "$FULL_OUTPUT" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -n 1)
+          
+          echo "Regex result (CLEAN_VER): '$CLEAN_VER'"
+
+          # 3. Final safety check
+          if [ -z "$CLEAN_VER" ]; then
+            echo "⚠️ WARNING: Regex failed to find a version number. Defaulting to 'latest-build'."
+            CLEAN_VER="latest-build"
+          fi
+
           echo "LIBSQL_VER=$CLEAN_VER" >> $GITHUB_OUTPUT
-          echo "Detected Version: $CLEAN_VER"
+          echo "Final Version Tag to be used: $CLEAN_VER"
+          echo "---------------------------------------"
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
