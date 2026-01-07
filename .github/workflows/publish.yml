@@ -33,6 +33,18 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Extract libSQL Version
+        id: get_version
+        run: |
+          # Run the container, get the version, and pick the second column (the number)
+          RAW_VER=$(docker run --rm ghcr.io/tursodatabase/libsql-server:latest /bin/sqld --version | awk '{print $2}')
+          
+          # Clean it up: ensure it's not empty and remove any trailing noise
+          CLEAN_VER=$(echo $RAW_VER | tr -d '\r\n')
+          
+          echo "LIBSQL_VER=$CLEAN_VER" >> $GITHUB_OUTPUT
+          echo "Detected libSQL Version: $CLEAN_VER"
+
       - name: Build and push
         uses: docker/build-push-action@v5
         with:
