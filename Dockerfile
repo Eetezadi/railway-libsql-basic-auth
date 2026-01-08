@@ -1,4 +1,4 @@
-FROM ghcr.io/tursodatabase/libsql-server:latest
+FROM ghcr.io/tursodatabase/libsql-server:v0.24.33
 
 USER root
 
