@@ -34,7 +34,7 @@ Because this uses Basic Auth, you must include the username and your password in
 #### Connecting with Drizzle ("Basic Auth" Fix)
 Since `@libsql/client` expects a `Bearer` token by default, use a custom fetch wrapper to inject the `Basic` Auth header required by this server:
 
-##### Configure the Client (db/index.ts)
+##### Configure the Client (`db/index.ts`)
 The @libsql/client SDK defaults to Bearer (JWT) when using the authToken parameter. To support the Basic Auth required by this server, use this custom fetch wrapper:
 ```typescript
 import { createClient } from '@libsql/client';
@@ -59,7 +59,7 @@ export function createDbClient(url: string, username: string, password: string) 
   });
 
   return drizzle(client, { schema });
-}
+}``
 
 ##### Usage in App
 ```typescript
