@@ -25,20 +25,22 @@ func main() {
 
 	signedToken, _ := token.SignedString(priv)
 
-	fmt.Println("################################################################################")
-	fmt.Println("###                                                                          ###")
-	fmt.Println("###  🔐 libSQL CREDENTIALS - COPY THESE VALUES                              ###")
-	fmt.Println("###                                                                          ###")
-	fmt.Println("################################################################################")
-	fmt.Println("")
-	fmt.Println("→ RAILWAY VARIABLE (paste in Railway Service Variables):")
-	fmt.Printf("  SQLD_AUTH_JWT_KEY=%s\n", base64.RawURLEncoding.EncodeToString(pub))
-	fmt.Println("")
-	fmt.Println("→ CLIENT ENV (paste in your .env file):")
-	fmt.Printf("  DATABASE_AUTH_TOKEN=%s\n", signedToken)
-	fmt.Println("")
-	fmt.Println("ℹ️  Private key was destroyed after signing. To rotate, delete the Railway")
-	fmt.Println("   variable SQLD_AUTH_JWT_KEY and redeploy.")
-	fmt.Println("")
-	fmt.Println("################################################################################")
+	fmt.Print(`
+################################################################################
+###                                                                          ###
+###  🔐 libSQL CREDENTIALS - COPY THESE VALUES                              ###
+###                                                                          ###
+################################################################################
+
+→ RAILWAY VARIABLE (paste in Railway Service Variables):
+  SQLD_AUTH_JWT_KEY=` + base64.RawURLEncoding.EncodeToString(pub) + `
+
+→ CLIENT ENV (paste in your .env file):
+  DATABASE_AUTH_TOKEN=` + signedToken + `
+
+ℹ️  Private key was destroyed after signing. To rotate, delete the Railway
+   variable SQLD_AUTH_JWT_KEY and redeploy.
+
+################################################################################
+`)
 }
