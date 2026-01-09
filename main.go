@@ -38,7 +38,7 @@ func main() {
 → CLIENT ENV (paste in your .env file):
   DATABASE_AUTH_TOKEN=` + signedToken + `
 
-ℹ️  Private key was destroyed after signing. To rotate, delete the Railway
+ℹ️  Private key was destroyed after signing. To rotate, empty the Railway
    variable SQLD_AUTH_JWT_KEY and redeploy.
 
 ################################################################################

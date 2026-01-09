@@ -5,9 +5,9 @@
 Host your own **libSQL / Turso (sqld)** instance on Railway. This template provides a Turso-compatible database server that works with the `@libsql/client` SDK and Drizzle ORM, giving you a dedicated SQLite-compatible database with no row limits.
 
 ## 🔒 Authentication & Security
-This deployment is secured using **HTTP Basic Authentication**. It functions similarly to a standard Postgres or MySQL setup where access is protected by a username and a password.
+This deployment is secured using **JWT-based authentication** with Ed25519 signing keys. On first deployment, the system automatically generates a cryptographically secure key pair and a long-lived access token (valid for 10 years).
 
-**Important:** This setup does not use JWT "Auth Tokens." Most libSQL SDKs expect a JWT when using the `authToken` property. To connect successfully, you must either include credentials in the URL or use a custom fetch wrapper (see Drizzle example below).
+**How it works:** The server generates credentials on startup if none are configured. You'll copy these values from the deployment logs into your Railway service variables and your application's environment variables.
 
 ## About libSQL on Railway
 libSQL is the open-source fork of SQLite designed for modern web applications. 
@@ -19,57 +19,72 @@ libSQL is the open-source fork of SQLite designed for modern web applications.
 
 ## Post-Installation Setup
 
-### 1. Environment Variables
-Ensure these are configured in your Railway project settings:
+### Step 1: Deploy to Railway
+Click the "Deploy on Railway" button at the top of this README. Railway will create a new service for you.
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `DB_USER` | `root` | The username for database access (defaults to root). |
-| `DB_PASSWORD` | *Required* | Your database password. Use a long, random string. |
-| `PORT` | `8080` | The internal port the server listens on. |
+### Step 2: Get Your Credentials from the Logs
+After deployment completes, you need to retrieve the auto-generated credentials:
 
-### 2. Connecting to your Database
-Because this uses Basic Auth, you must include the username and your password in the URL.
+1. Open your Railway project dashboard
+2. Click on your libSQL service
+3. Go to the **Deployments** tab
+4. Click on the most recent deployment
+5. Scroll through the deployment logs until you see a box that looks like this:
 
-#### Connecting with Drizzle ("Basic Auth" Fix)
-Since `@libsql/client` expects a `Bearer` token by default, use a custom fetch wrapper to inject the `Basic` Auth header required by this server:
-
-##### Configure the Client (`db/index.ts`)
-The @libsql/client SDK defaults to Bearer (JWT) when using the authToken parameter. To support the Basic Auth required by this server, use this custom fetch wrapper:
-```typescript
-import { createClient } from '@libsql/client';
-import { drizzle } from 'drizzle-orm/libsql';
-import * as schema from './schema';
-
-export function createDbClient(url: string, username: string, password: string) {
-  // 1. Encode credentials for HTTP Basic Auth
-  const credentials = Buffer.from(`${username}:${password}`).toString('base64');
-
-  // 2. Create custom fetch to force "Basic" instead of "Bearer"
-  const authenticatedFetch = (input: string | Request | URL, init?: RequestInit) => {
-    const headers = new Headers(init?.headers);
-    headers.set('Authorization', `Basic ${credentials}`);
-    return fetch(input, { ...init, headers });
-  };
-
-  // 3. Initialize libSQL with the custom fetcher
-  const client = createClient({
-    url,
-    fetch: authenticatedFetch,
-  });
-
-  return drizzle(client, { schema });
-}
 ```
-##### Usage in App
-```typescript
-import { createDbClient } from './db';
+################################################################################
+###                                                                          ###
+###  🔐 libSQL CREDENTIALS - COPY THESE VALUES                              ###
+###                                                                          ###
+################################################################################
 
-const db = createDbClient(
-  process.env.DATABASE_URL!, 
-  process.env.DB_USER!, 
-  process.env.DB_PASSWORD!
-);
+→ RAILWAY VARIABLE (paste in Railway Service Variables):
+  SQLD_AUTH_JWT_KEY=<your-public-key-here>
 
-// Now you can run migrations or queries
-// await db.select().from(schema.users);
+→ CLIENT ENV (paste in your .env file):
+  DATABASE_AUTH_TOKEN=<your-jwt-token-here>
+
+ℹ️  Private key was destroyed after signing. To rotate, empty the Railway
+   variable SQLD_AUTH_JWT_KEY and redeploy.
+
+################################################################################
+```
+
+### Step 3: Configure Railway Environment Variable
+Now you need to add the public key to your Railway service so the server can verify tokens:
+
+1. In Railway, go to your libSQL service
+2. Click the **Variables** tab
+3. Click **+ New Variable**
+4. Create a new variable:
+   - **Name:** `SQLD_AUTH_JWT_KEY`
+   - **Value:** Copy the entire value after `SQLD_AUTH_JWT_KEY=` from the logs (the long base64 string)
+5. Click **Add** to save
+6. The service will automatically redeploy with the new variable
+
+**Why this step?** This tells the server which public key to use for verifying JWT tokens. Without this variable set, the server generates new credentials on every restart.
+
+### Step 4: Configure Your Application
+In your application's `.env` file (or environment variables), add these two values:
+
+```env
+DATABASE_URL=https://your-service.railway.app
+DATABASE_AUTH_TOKEN=<paste-the-jwt-token-from-logs>
+```
+
+Replace:
+- `your-service.railway.app` with your actual Railway service URL (found in the Settings tab)
+- `<paste-the-jwt-token-from-logs>` with the token value from the deployment logs
+
+### Step 5: Rotating Credentials
+
+If you need to generate new credentials (e.g., token was compromised or expired):
+
+1. Go to your Railway service's **Variables** tab
+2. Find the `SQLD_AUTH_JWT_KEY` variable
+3. **Delete** the variable (or clear its value)
+4. Go to the **Deployments** tab and trigger a new deployment
+5. Check the deployment logs for the new credentials box
+6. Follow Steps 3-4 above to configure the new values
+
+**Important:** After rotation, update the `DATABASE_AUTH_TOKEN` in all applications that connect to this database.
