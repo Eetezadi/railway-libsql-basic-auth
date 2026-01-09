@@ -1,19 +1,20 @@
-FROM ghcr.io/tursodatabase/libsql-server:v0.24.33
+FROM golang:1.25-alpine AS token-compiler
+WORKDIR /app
+COPY main.go .
+RUN go mod init token-gen && \
+    go get github.com/golang-jwt/jwt/v5 && \
+    go build -o /token-gen main.go
 
-USER root
+# Final Database Stage
+FROM ghcr.io/tursodatabase/sqld:latest
+COPY --from=token-compiler /token-gen /usr/local/bin/token-gen
 
-# Install only what is strictly necessary and clean up cache in one layer
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends gosu ca-certificates && \
-    rm -rf /var/lib/apt/lists/*
+RUN mkdir -p /var/lib/sqld
+VOLUME /var/lib/sqld
+EXPOSE 8080
 
-# Pre-create data directory with correct permissions
-RUN mkdir -p /var/lib/sqld && chown sqld:sqld /var/lib/sqld
-
-COPY entrypoint.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/entrypoint.sh
-
-# This ensures the container reacts correctly to stop signals (SIGTERM)
-STOPSIGNAL SIGINT
-
-ENTRYPOINT ["entrypoint.sh"]
+CMD sh -c '\
+    if [ -z "$SQLD_AUTH_JWT_KEY" ]; then \
+        token-gen; \
+    fi; \
+    sqld --http-listen-addr 0.0.0.0:${PORT:-8080} --db-path /var/lib/sqld/data.sqld'
