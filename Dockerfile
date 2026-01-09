@@ -9,7 +9,10 @@ RUN go mod init token-gen && \
 FROM ghcr.io/tursodatabase/libsql-server:v0.24.33
 
 USER root
-RUN apk add --no-cache ca-certificates
+# Install only what is strictly necessary and clean up cache in one layer
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends ca-certificates && \
+    rm -rf /var/lib/apt/lists/*
 
 COPY --from=token-compiler /token-gen /usr/local/bin/token-gen
 
@@ -18,8 +21,4 @@ EXPOSE 8080
 
 STOPSIGNAL SIGINT
 
-CMD sh -c '\
-    if [ -z "$SQLD_AUTH_JWT_KEY" ]; then \
-        token-gen; \
-    fi; \
-    sqld --http-listen-addr 0.0.0.0:${PORT:-8080} --db-path /var/lib/sqld/data.sqld'
+CMD ["sh", "-c", "if [ -z \"$SQLD_AUTH_JWT_KEY\" ]; then token-gen; fi; sqld --http-listen-addr 0.0.0.0:${PORT:-8080} --db-path /var/lib/sqld/data.sqld"]
