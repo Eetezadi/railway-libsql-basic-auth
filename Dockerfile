@@ -10,7 +10,6 @@ FROM ghcr.io/tursodatabase/sqld:latest
 COPY --from=token-compiler /token-gen /usr/local/bin/token-gen
 
 RUN mkdir -p /var/lib/sqld
-VOLUME /var/lib/sqld
 EXPOSE 8080
 
 CMD sh -c '\
