@@ -25,15 +25,20 @@ func main() {
 
 	signedToken, _ := token.SignedString(priv)
 
-	fmt.Print(`
----------------------------------------------------------
-RAILWAY VARIABLE (Copy to Railway Service Variables)
-SQLD_AUTH_JWT_KEY=` + base64.RawURLEncoding.EncodeToString(pub) + `
----------------------------------------------------------
-DRIZZLE ENV (Copy to Client .env file)
-DATABASE_AUTH_TOKEN=` + signedToken + `
----------------------------------------------------------
-Note: The private key was destroyed after signing.
-To rotate keys, delete the Railway variable and redeploy.
-`)
+	// Wait a few seconds for sqld to complete its startup logs
+	time.Sleep(3 * time.Second)
+
+	fmt.Println("================================================================================")
+	fmt.Println("🔐 libSQL CREDENTIALS - COPY THESE VALUES")
+	fmt.Println("================================================================================")
+	fmt.Println("")
+	fmt.Println("→ RAILWAY VARIABLE (paste in Railway Service Variables):")
+	fmt.Printf("  SQLD_AUTH_JWT_KEY=%s\n", base64.RawURLEncoding.EncodeToString(pub))
+	fmt.Println("")
+	fmt.Println("→ CLIENT ENV (paste in your .env file):")
+	fmt.Printf("  DATABASE_AUTH_TOKEN=%s\n", signedToken)
+	fmt.Println("")
+	fmt.Println("ℹ️  Private key was destroyed after signing. To rotate, delete the Railway")
+	fmt.Println("   variable SQLD_AUTH_JWT_KEY and redeploy.")
+	fmt.Println("================================================================================")
 }

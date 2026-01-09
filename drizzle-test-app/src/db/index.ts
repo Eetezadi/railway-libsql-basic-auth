@@ -4,7 +4,7 @@ import * as schema from './schema.js';
 
 export function createDbClient(url: string, authToken: string) {
   const client = createClient({
-    url: `https://${url}`,
+    url: `libsql://${url}`,
     authToken,
   });
 
