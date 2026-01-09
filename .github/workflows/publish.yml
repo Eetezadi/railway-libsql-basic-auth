@@ -23,7 +23,8 @@ jobs:
         run: |
           # Grabs the version after the colon in the FROM line (e.g., v0.24.33)
           # We use 'tr -d' to clean any potential carriage returns
-          VER=$(grep -m 1 "FROM" Dockerfile | cut -d ':' -f 2 | tr -d '\r\n')
+          # We use 'awk' to extract only the image:tag part, ignoring 'AS' and stage name
+          VER=$(grep "FROM ghcr.io/tursodatabase/libsql-server" Dockerfile | awk '{print $2}' | cut -d ':' -f 2 | tr -d '\r\n')
           echo "LIBSQL_VER=${VER:-latest}" >> $GITHUB_OUTPUT
           echo "Found pinned version in Dockerfile: $VER"
 
