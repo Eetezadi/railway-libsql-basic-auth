@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import { createInterface } from 'readline/promises';
 import { stdin as input, stdout as output } from 'process';
 import { eq, sql } from 'drizzle-orm';
@@ -21,12 +22,10 @@ function log(message: string, color: keyof typeof colors = 'reset') {
   console.log(`${colors[color]}${message}${colors.reset}`);
 }
 
-async function testConnection(url: string, username: string, password: string) {
+async function testConnection(db: DbClient) {
   log('\n📡 Testing database connection...', 'cyan');
 
   try {
-    const db = createDbClient(url, username, password);
-
     // Test connection with a simple query
     await db.run(sql`SELECT 1`);
 
@@ -176,6 +175,12 @@ async function performCrudOperations(db: DbClient) {
 }
 
 async function cleanup(db: DbClient) {
+  // Skip cleanup prompt if not running in interactive terminal
+  if (!process.stdin.isTTY) {
+    log('\n✓ Test data preserved in database (non-interactive mode)', 'yellow');
+    return;
+  }
+
   const shouldCleanup = await rl.question('\n🧹 Clean up test data? (y/N): ');
 
   if (shouldCleanup.toLowerCase() === 'y') {
@@ -194,30 +199,33 @@ async function main() {
   log('╚════════════════════════════════════════╝', 'bright');
 
   try {
-    // Get database credentials
-    log('\n📝 Please enter your database credentials:', 'cyan');
-    log('   (This server uses HTTP Basic Authentication)', 'blue');
+    // Load database credentials from .env
+    const dbUrl = process.env.DB_URL;
+    const authToken = process.env.DATABASE_AUTH_TOKEN;
 
-    log('\n   Database URL (without credentials):', 'blue');
-    log('   Format: https://your-project.up.railway.app', 'blue');
-    const url = await rl.question('Database URL: ');
-
-    log('\n   Username (default is usually "root"):', 'blue');
-    const username = await rl.question('Username [root]: ') || 'root';
-
-    log('\n   Password:', 'blue');
-    const password = await rl.question('Password: ');
-
-    if (!url || !password) {
-      log('\n✗ URL and password are required!', 'red');
+    if (!dbUrl || !authToken) {
+      log('\n✗ Missing required environment variables!', 'red');
+      log('   Please ensure DB_URL and DATABASE_AUTH_TOKEN are set in .env', 'red');
       process.exit(1);
     }
 
+    log('\n📝 Using database credentials from .env', 'cyan');
+    log(`   URL: ${dbUrl}`, 'blue');
+
+    // Create database client
+    const db = createDbClient(dbUrl, authToken);
+
     // Test connection
-    const db = await testConnection(url, username, password);
+    await testConnection(db);
 
     // Create tables
     await createTables(db);
+
+    // Clean up any existing test data before running tests
+    log('\n🧹 Cleaning up any existing test data...', 'cyan');
+    await db.delete(posts);
+    await db.delete(users);
+    log('✓ Old test data cleaned up!', 'green');
 
     // Perform CRUD operations
     await performCrudOperations(db);

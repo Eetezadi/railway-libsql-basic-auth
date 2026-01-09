@@ -8,6 +8,7 @@
     "start": "tsx src/index.ts",
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
+    "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio"
   },
@@ -22,12 +23,12 @@
   "license": "MIT",
   "dependencies": {
     "@libsql/client": "^0.14.0",
-    "drizzle-orm": "^0.35.3",
-    "dotenv": "^16.4.7"
+    "dotenv": "^16.4.7",
+    "drizzle-orm": "^0.45.1"
   },
   "devDependencies": {
     "@types/node": "^22.10.5",
-    "drizzle-kit": "^0.27.2",
+    "drizzle-kit": "^0.31.8",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2"
   }
