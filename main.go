@@ -25,9 +25,6 @@ func main() {
 
 	signedToken, _ := token.SignedString(priv)
 
-	// Wait a few seconds for sqld to complete its startup logs
-	time.Sleep(3 * time.Second)
-
 	fmt.Println("================================================================================")
 	fmt.Println("🔐 libSQL CREDENTIALS - COPY THESE VALUES")
 	fmt.Println("================================================================================")
